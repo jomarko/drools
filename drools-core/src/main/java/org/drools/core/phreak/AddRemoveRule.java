@@ -9,7 +9,6 @@ import org.drools.core.common.Memory;
 import org.drools.core.common.MemoryFactory;
 import org.drools.core.common.PropagationContextFactory;
 import org.drools.core.common.RightTupleSets;
-import org.drools.core.common.SynchronizedLeftTupleSets;
 import org.drools.core.common.TupleEntryQueue;
 import org.drools.core.definitions.rule.impl.RuleImpl;
 import org.drools.core.impl.InternalKnowledgeBase;
@@ -378,21 +377,11 @@ public class AddRemoveRule {
              Memory memory = wm.getNodeMemory((MemoryFactory) subNetworkLts);
              SegmentMemory newSmem = SegmentUtilities.createChildSegment(wm, peerLts, memory);
              sm.add(newSmem);
-
-             if ( sm.getTipNode().getType() == NodeTypeEnums.LeftInputAdapterNode ) {
-                 // If LiaNode is in it's own segment, then the segment first after that must use SynchronizedLeftTupleSets
-                 newSmem.setStagedTuples( new SynchronizedLeftTupleSets() );
-             }
          }
 
          Memory memory = wm.getNodeMemory((MemoryFactory) peerLts);
          SegmentMemory newSmem = SegmentUtilities.createChildSegment(wm, peerLts, memory);
          sm.add(newSmem);
-
-         if ( sm.getTipNode().getType() == NodeTypeEnums.LeftInputAdapterNode ) {
-             // If LiaNode is in it's own segment, then the segment first after that must use SynchronizedLeftTupleSets
-             newSmem.setStagedTuples( new SynchronizedLeftTupleSets() );
-         }
 
          LeftTupleSource lts;
          if ( NodeTypeEnums.isTerminalNode(sm.getTipNode() ) ) {
@@ -953,7 +942,6 @@ public class AddRemoveRule {
          sm1.setTipNode( splitNode ); // splitNode is now tip of original segment
 
          if ( sm1.getTipNode().getType() == NodeTypeEnums.LeftInputAdapterNode ) {
-             sm2.setStagedTuples( new SynchronizedLeftTupleSets() ); // and the LeftTuples must be Synchronized, for thread safety
              if (  !sm1.getStagedLeftTuples().isEmpty() ) {
                  // Segments with only LiaNode's cannot have staged LeftTuples, so move them down to the new Segment
                 sm2.getStagedLeftTuples().addAll(sm1.getStagedLeftTuples());

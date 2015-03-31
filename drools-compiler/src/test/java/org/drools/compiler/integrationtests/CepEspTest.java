@@ -4326,7 +4326,7 @@ public class CepEspTest extends CommonTestMethodBase {
                      "        $list: List() from collect(MyEvent() over window:time(300ms))\n" +
                      "    then\n" +
                      "        System.out.println(\"Rule: with in 0.3s --> \" + $list);\n" +
-                     "        list.add( $list.size() ); \n" +
+                     "        list.add( 'r1:' + $list.size() ); \n" +
                      "end\n" +
                      "\n" +
                      "rule \"over 1s\"\n" +
@@ -4335,7 +4335,7 @@ public class CepEspTest extends CommonTestMethodBase {
                      "        $list: List() from collect(MyEvent() over window:time(1s))\n" +
                      "    then\n" +
                      "        System.out.println(\"Rule: with in 1s --> \" + $list);\n" +
-                     "        list.add( $list.size() ); \n" +
+                     "        list.add( 'r2:' + $list.size() ); \n" +
                      "end\n" +
                      "\n" +
                      "rule \"over 3s\"\n" +
@@ -4344,7 +4344,7 @@ public class CepEspTest extends CommonTestMethodBase {
                      "        $list: List() from collect(MyEvent() over window:time(3s))\n" +
                      "    then\n" +
                      "        System.out.println(\"Rule: with in 3s --> \" + $list);\n" +
-                     "        list.add( $list.size() ); \n" +
+                     "        list.add( 'r3:' + $list.size() ); \n" +
                      "end\n" +
                      "\n" +
                      "rule \"over 0.3s ep\"\n" +
@@ -4353,7 +4353,7 @@ public class CepEspTest extends CommonTestMethodBase {
                      "        $list: List() from collect(MyEvent() over window:time(300ms) from entry-point \"stream\")\n" +
                      "    then\n" +
                      "        System.out.println(\"Rule: with in 0.3s use ep --> \" + $list);\n" +
-                     "        list.add( $list.size() ); \n" +
+                     "        list.add( 'r4:' + $list.size() ); \n" +
                      "end\n" +
                      "\n" +
                      "rule \"over 1s ep\"\n" +
@@ -4362,7 +4362,7 @@ public class CepEspTest extends CommonTestMethodBase {
                      "        $list: List() from collect(MyEvent() over window:time(1s) from entry-point \"stream\")\n" +
                      "    then\n" +
                      "        System.out.println(\"Rule: with in 1s use ep --> \" + $list);\n" +
-                     "        list.add( $list.size() ); \n" +
+                     "        list.add( 'r5:' + $list.size() ); \n" +
                      "end\n" +
                      "\n" +
                      "rule \"over 3s ep\"\n" +
@@ -4371,7 +4371,7 @@ public class CepEspTest extends CommonTestMethodBase {
                      "        $list: List() from collect(MyEvent() over window:time(3s) from entry-point \"stream\")\n" +
                      "    then\n" +
                      "        System.out.println(\"Rule: with in 3s use ep --> \" + $list);\n" +
-                     "        list.add( $list.size() ); \n" +
+                     "        list.add( 'r6:' + $list.size() ); \n" +
                      "end";
 
         KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
@@ -4399,21 +4399,21 @@ public class CepEspTest extends CommonTestMethodBase {
         list.clear();
 
         for ( int j = 0; j < 5; j++ ) {
-            clock.advanceTime( 500, TimeUnit.MILLISECONDS );
-            ksession.insert( new MyEvent( clock.getCurrentTime() ) );
-            ksession.getEntryPoint( "stream" ).insert( new MyEvent( clock.getCurrentTime() ) );
+            clock.advanceTime(500, TimeUnit.MILLISECONDS );
+            ksession.insert(new MyEvent(clock.getCurrentTime() ) );
+            ksession.getEntryPoint( "stream" ).insert(new MyEvent(clock.getCurrentTime() ) );
             clock.advanceTime( 500, TimeUnit.MILLISECONDS );
             ksession.fireAllRules();
 
             System.out.println( list );
             switch ( j ) {
-                case 0 : assertEquals( Arrays.asList( 1, 1, 0, 1, 1, 0 ), list );
+                case 0 : assertEquals( Arrays.asList( "r6:1", "r5:1", "r3:1", "r2:1" ), list );
                     break;
-                case 1 : assertEquals( Arrays.asList( 2, 1, 0, 2, 1, 0 ), list );
+                case 1 : assertEquals( Arrays.asList( "r6:2", "r5:1", "r3:2", "r2:1" ), list );
                     break;
                 case 2 :
                 case 3 :
-                case 4 : assertEquals( Arrays.asList( 3, 1, 0, 3, 1, 0 ), list );
+                case 4 : assertEquals( Arrays.asList( "r6:3", "r5:1", "r3:3", "r2:1" ), list );
                     break;
                 default: fail();
             }
@@ -5087,14 +5087,14 @@ public class CepEspTest extends CommonTestMethodBase {
         List<Integer> list = new ArrayList<Integer>();
         ksession.setGlobal("list", list);
         ksession.setGlobal("salience1", new AtomicInteger(9));
-        ksession.setGlobal( "salience2", new AtomicInteger( 10 ) );
+        ksession.setGlobal("salience2", new AtomicInteger(10));
 
         for (int i = 0; i < 10; i++) {
             ksession.insert(i);
             ksession.fireAllRules();
         }
 
-        assertEquals(list, Arrays.asList( 2, 1, 2, 1, 2, 1, 2, 1, 2, 1 ));
+        assertEquals(list, Arrays.asList(2, 1, 2, 1, 2, 1, 2, 1, 2, 1));
     }
 
     @Test
@@ -5505,7 +5505,7 @@ public class CepEspTest extends CommonTestMethodBase {
         List list = new ArrayList(  );
         ksession.setGlobal( "list", list );
 
-        ksession.insert( "John" );
+        ksession.insert("John");
         ksession.fireAllRules();
 
         System.out.println("--------------------");
@@ -5516,9 +5516,9 @@ public class CepEspTest extends CommonTestMethodBase {
         System.out.println( list );
         assertTrue( list.contains( 0 ) );
         assertTrue( list.contains( 1 ) );
-        assertTrue( list.contains( 2 ) );
-        assertFalse( list.contains( -1 ) );
-        assertFalse( list.contains( -2 ) );
+        assertTrue(list.contains(2));
+        assertFalse(list.contains(-1));
+        assertFalse(list.contains(-2));
 
     }
 
@@ -5564,15 +5564,15 @@ public class CepEspTest extends CommonTestMethodBase {
         List list = new ArrayList(  );
         ksession.setGlobal( "list", list );
 
-        ksession.insert( "John" );
+        ksession.insert("John");
         ksession.fireAllRules();
-        assertTrue( list.isEmpty() );
+        assertTrue(list.isEmpty());
 
-        (( PseudoClockScheduler )ksession.getSessionClock()).advanceTime( 1000, TimeUnit.MILLISECONDS );
+        (( PseudoClockScheduler )ksession.getSessionClock()).advanceTime(1000, TimeUnit.MILLISECONDS);
 
         ksession.fireAllRules();
-        assertTrue( list.contains( -2 ) );
-        assertTrue( list.contains( 0 ) );
+        assertTrue(list.contains(-2));
+        assertTrue(list.contains(0));
 
     }
 
@@ -5601,6 +5601,59 @@ public class CepEspTest extends CommonTestMethodBase {
                      "then\n" +
                      "  list.add( 0 );\n" +
                      "then[t1]\n" +
+                     "  list.add( 1 );\n" +
+                     "end\n";
+
+        KieSessionConfiguration sessionConfig = KnowledgeBaseFactory.newKnowledgeSessionConfiguration();
+        sessionConfig.setOption(ClockTypeOption.get(ClockType.PSEUDO_CLOCK.getId()));
+
+        KieHelper helper = new KieHelper();
+        helper.addContent(drl, ResourceType.DRL);
+        KieSession ksession = helper.build(EventProcessingOption.STREAM).newKieSession(sessionConfig, null);
+
+        List<Integer> list = new ArrayList<Integer>();
+        ksession.setGlobal("list", list);
+
+        ksession.insert("Alice");
+        ksession.fireAllRules();
+        assertTrue(list.isEmpty());
+
+        ((PseudoClockScheduler) ksession.getSessionClock()).advanceTime(150, TimeUnit.MILLISECONDS);
+
+        ksession.fireAllRules();
+        assertEquals(1, list.size());
+        assertEquals(1, (int) list.get(0));
+    }
+
+    @Test
+    public void test2TimersWith2Rules() throws InterruptedException {
+        String drl = "package org.drools " +
+
+                     "global java.util.List list; " +
+
+                     "declare  Msg " +
+                     "    @role( event ) " +
+                     "    sender : String  @key " +
+                     "end " +
+
+                     "rule Init " +
+                     "when " +
+                     "  $s : String() " +
+                     "then " +
+                     "  insert( new Msg( $s ) ); " +
+                     "end " +
+
+                     "rule 'Viol1' when " +
+                     "    $trigger : Msg( 'Alice' ; )\n" +
+                     "    not Msg( 'Bob' ; this after[0, 100ms] $trigger ) \n" +
+                     "    not Msg( 'Charles' ; this after[0, 200ms] $trigger )\n" +
+                     "then\n" +
+                     "  list.add( 0 );\n" +
+                     "end\n" +
+                     "rule 'Viol2' when " +
+                     "    $trigger : Msg( 'Alice' ; )\n" +
+                     "    not Msg( 'Bob' ; this after[0, 100ms] $trigger ) \n" +
+                     "then\n" +
                      "  list.add( 1 );\n" +
                      "end\n";
 

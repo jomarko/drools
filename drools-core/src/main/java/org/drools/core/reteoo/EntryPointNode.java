@@ -18,12 +18,14 @@ package org.drools.core.reteoo;
 
 import org.drools.core.base.ClassObjectType;
 import org.drools.core.common.EventFactHandle;
+import org.drools.core.common.InternalAgenda;
 import org.drools.core.common.InternalFactHandle;
 import org.drools.core.common.InternalWorkingMemory;
 import org.drools.core.common.InternalWorkingMemoryEntryPoint;
 import org.drools.core.common.PropagationContextFactory;
 import org.drools.core.common.RuleBasePartitionId;
 import org.drools.core.impl.StatefulKnowledgeSessionImpl;
+import org.drools.core.phreak.PropagationEntry;
 import org.drools.core.reteoo.LeftInputAdapterNode.LiaNodeMemory;
 import org.drools.core.reteoo.ObjectTypeNode.ObjectTypeNodeMemory;
 import org.drools.core.reteoo.builder.BuildContext;
@@ -167,7 +169,7 @@ public class EntryPointNode extends ObjectSource
 
         if ( queryNode != null ) {
             // There may be no queries defined
-            this.queryNode.retractObject( factHandle, context, workingMemory );
+            this.queryNode.retractObject(factHandle, context, workingMemory);
         }
     }
 
@@ -205,7 +207,7 @@ public class EntryPointNode extends ObjectSource
 
         if ( activationNode != null ) {
             // There may be no queries defined
-            this.activationNode.assertObject( factHandle, context, workingMemory );
+            this.activationNode.propagateAssert(factHandle, context, workingMemory);
         }
     }
 
@@ -264,17 +266,30 @@ public class EntryPointNode extends ObjectSource
                                    new StatefulKnowledgeSessionImpl.WorkingMemoryReteExpireAction(handle));
             }
         }
+
+        if (cachedNodes.length > 0 && workingMemory.getSessionConfiguration().isThreadSafe()) {
+            ((StatefulKnowledgeSessionImpl) workingMemory).addPropagation(new PropagationEntry.Insert(cachedNodes, handle, context));
+            ((InternalAgenda)workingMemory.getAgenda()).notifyHalt();
+        }
     }
 
 
     public void modifyObject(final InternalFactHandle handle,
                              final PropagationContext pctx,
                              final ObjectTypeConf objectTypeConf,
-                             final InternalWorkingMemory wm) {
+                             final InternalWorkingMemory workingMemory) {
         if ( log.isTraceEnabled() ) {
             log.trace( "Update {}", handle.toString()  );
         }
 
+        if (workingMemory.getSessionConfiguration().isThreadSafe()) {
+            workingMemory.addPropagation(new PropagationEntry.Update(this, handle, pctx, objectTypeConf));
+        } else {
+            propagateModify( handle, pctx, objectTypeConf, workingMemory );
+        }
+    }
+
+    public void propagateModify(InternalFactHandle handle, PropagationContext pctx, ObjectTypeConf objectTypeConf, InternalWorkingMemory wm) {
         ObjectTypeNode[] cachedNodes = objectTypeConf.getObjectTypeNodes();
 
         // make a reference to the previous tuples, then null then on the handle
@@ -291,7 +306,7 @@ public class EntryPointNode extends ObjectSource
             if (i < cachedNodes.length - 1) {
                 RightTuple rightTuple = modifyPreviousTuples.peekRightTuple();
                 while ( rightTuple != null &&
-                        (( BetaNode ) rightTuple.getRightTupleSink()).getObjectTypeNode() == cachedNodes[i] ) {
+                        ((BetaNode) rightTuple.getRightTupleSink()).getObjectTypeNode() == cachedNodes[i] ) {
                     modifyPreviousTuples.removeRightTuple();
 
                     doRightDelete(pctx, wm, rightTuple);
@@ -314,20 +329,20 @@ public class EntryPointNode extends ObjectSource
                         }
                     }
 
-                    if ( otn == null || otn == cachedNodes[i+1] ) break;
+                    if ( otn == null || cachedNodes[i] != otn ) break;
 
                     modifyPreviousTuples.removeLeftTuple();
                     doDeleteObject(pctx, wm, leftTuple);
                 }
             }
         }
-        modifyPreviousTuples.retractTuples( pctx, wm );
+        modifyPreviousTuples.retractTuples(pctx, wm);
     }
 
     public void doDeleteObject(PropagationContext pctx, InternalWorkingMemory wm, LeftTuple leftTuple) {
         LeftInputAdapterNode liaNode = (LeftInputAdapterNode) leftTuple.getLeftTupleSink().getLeftTupleSource();
         LiaNodeMemory lm = ( LiaNodeMemory )  wm.getNodeMemory( liaNode );
-        LeftInputAdapterNode.doDeleteObject( leftTuple, pctx, lm.getSegmentMemory(), wm, liaNode, true, lm );
+        LeftInputAdapterNode.doDeleteObject(leftTuple, pctx, lm.getSegmentMemory(), wm, liaNode, true, lm);
     }
 
     public void doRightDelete(PropagationContext pctx, InternalWorkingMemory wm, RightTuple rightTuple) {
@@ -381,6 +396,14 @@ public class EntryPointNode extends ObjectSource
             log.trace( "Delete {}", handle.toString()  );
         }
 
+        if (workingMemory.getSessionConfiguration().isThreadSafe()) {
+            workingMemory.addPropagation(new PropagationEntry.Delete(this, handle, context, objectTypeConf));
+        } else {
+            propagateRetract(handle, context, objectTypeConf, workingMemory);
+        }
+    }
+
+    public void propagateRetract(InternalFactHandle handle, PropagationContext context, ObjectTypeConf objectTypeConf, InternalWorkingMemory workingMemory) {
         ObjectTypeNode[] cachedNodes = objectTypeConf.getObjectTypeNodes();
 
         if ( cachedNodes == null ) {

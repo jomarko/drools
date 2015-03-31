@@ -66,6 +66,8 @@ import org.drools.core.marshalling.impl.MarshallerWriteContext;
 import org.drools.core.marshalling.impl.ObjectMarshallingStrategyStoreImpl;
 import org.drools.core.marshalling.impl.PersisterHelper;
 import org.drools.core.marshalling.impl.ProtobufMessages;
+import org.drools.core.phreak.PropagationEntry;
+import org.drools.core.phreak.PropagationList;
 import org.drools.core.phreak.RuleAgendaItem;
 import org.drools.core.phreak.RuleExecutor;
 import org.drools.core.phreak.SegmentUtilities;
@@ -265,6 +267,8 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
 
     private boolean alive = true;
 
+    private PropagationList propagationList;
+
     // ------------------------------------------------------------
     // Constructors
     // ------------------------------------------------------------
@@ -378,6 +382,13 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
 
         timerService = TimerServiceFactory.getTimerService(this.config);
         ((AcceptsTimerJobFactoryManager) timerService).setTimerJobFactoryManager(config.getTimerJobFactoryManager());
+
+        if (!kBase.getConfiguration().isPhreakEnabled()) {
+            config.setThreadSafe(false);
+        }
+        if (config.isThreadSafe()) {
+            propagationList = new PropagationList();
+        }
 
         this.propagationIdCounter = new AtomicLong(propagationContext);
 
@@ -1070,6 +1081,10 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
         this.opCounter.set( 0 );
         this.lastIdleTimestamp.set( -1 );
 
+        if (propagationList != null) {
+            propagationList.reset();
+        }
+
         initTransient();
 
         timerService = TimerServiceFactory.getTimerService(this.config);
@@ -1105,6 +1120,10 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
         this.opCounter.set( 0 );
         this.lastIdleTimestamp.set( -1 );
 
+        if (propagationList != null) {
+            propagationList.reset();
+        }
+
         // TODO should these be cleared?
         // we probably neeed to do CEP and Flow timers too
         // this.processInstanceManager.clear()
@@ -1132,7 +1151,7 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
     }
 
     public void addEventListener(final AgendaEventListener listener) {
-        this.agendaEventSupport.addEventListener( listener);
+        this.agendaEventSupport.addEventListener(listener);
     }
 
     public void removeEventListener(final AgendaEventListener listener) {
@@ -1155,7 +1174,7 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
 
     ///RuleEventListenerSupport
     public void addEventListener(final RuleEventListener listener) {
-        this.ruleEventListenerSupport.addEventListener( listener );
+        this.ruleEventListenerSupport.addEventListener(listener);
     }
 
     public void removeEventListener(final RuleEventListener listener) {
@@ -1257,11 +1276,11 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
     }
 
     public void clearAgendaGroup(final String group) {
-        this.agenda.clearAndCancelAgendaGroup( group );
+        this.agenda.clearAndCancelAgendaGroup(group);
     }
 
     public void clearActivationGroup(final String group) {
-        this.agenda.clearAndCancelActivationGroup( group);
+        this.agenda.clearAndCancelActivationGroup(group);
     }
 
     public void clearRuleFlowGroup(final String group) {
@@ -1565,8 +1584,15 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
     }
 
     public void executeQueuedActions() {
+        executeQueuedActions(true);
+    }
+
+    public void executeQueuedActions(boolean flushPropagations) {
         try {
             startOperation();
+            if (flushPropagations) {
+                flushPropagations();
+            }
             if ( evaluatingActionQueue.compareAndSet( false,
                                                       true ) ) {
                 try {
@@ -2213,5 +2239,15 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
             this.marshallingStore = new ObjectMarshallingStrategyStoreImpl((ObjectMarshallingStrategy[]) this.environment.get(EnvironmentName.OBJECT_MARSHALLING_STRATEGIES));
         }
         return this.marshallingStore;
+    }
+
+    public void addPropagation(PropagationEntry propagationEntry) {
+        propagationList.addEntry(propagationEntry);
+    }
+
+    public void flushPropagations() {
+        if (config.isThreadSafe()) {
+            propagationList.flush(this);
+        }
     }
 }

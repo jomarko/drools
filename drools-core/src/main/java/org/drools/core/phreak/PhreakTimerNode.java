@@ -459,6 +459,7 @@ public class PhreakTimerNode {
             RuleExecutor ruleExecutor = pmem.getRuleAgendaItem().getRuleExecutor();
             ruleExecutor.reEvaluateNetwork(wm, outerStack);
             ruleExecutor.fire(wm, outerStack);
+            wm.flushPropagations();
         }
     }
 
