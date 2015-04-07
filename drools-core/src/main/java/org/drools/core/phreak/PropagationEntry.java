@@ -27,13 +27,13 @@ public interface PropagationEntry {
 
         public void propgate(InternalWorkingMemory wm) {
             for (int i = 0, length = otns.length; i < length; i++) {
-                otns[i].propagateAssert(handle, context, wm);
+                otns[i].assertObject(handle, context, wm);
             }
         }
 
         @Override
         public String toString() {
-            return "Insertion of " + handle.getObject();
+            return "Insert of " + handle.getObject();
         }
     }
 
@@ -71,6 +71,11 @@ public interface PropagationEntry {
                 ((TraitProxy) handle.getObject()).setTypeFilter(null);
             }
         }
+
+        @Override
+        public String toString() {
+            return "Update of " + handle.getObject();
+        }
     }
 
     public static class Delete implements PropagationEntry {
@@ -88,6 +93,11 @@ public interface PropagationEntry {
 
         public void propgate(InternalWorkingMemory wm) {
             epn.propagateRetract(handle, context, objectTypeConf, wm);
+        }
+
+        @Override
+        public String toString() {
+            return "Delete of " + handle.getObject();
         }
     }
 }

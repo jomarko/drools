@@ -29,7 +29,6 @@ import org.drools.core.common.InternalWorkingMemoryEntryPoint;
 import org.drools.core.common.Memory;
 import org.drools.core.common.MemoryFactory;
 import org.drools.core.common.UpdateContext;
-import org.drools.core.impl.StatefulKnowledgeSessionImpl;
 import org.drools.core.impl.StatefulKnowledgeSessionImpl.WorkingMemoryReteExpireAction;
 import org.drools.core.marshalling.impl.MarshallerReaderContext;
 import org.drools.core.marshalling.impl.MarshallerWriteContext;
@@ -268,7 +267,7 @@ public class ObjectTypeNode extends ObjectSource
         }
 
         checkDirty();
-        propagateAssert(factHandle, context, workingMemory);
+        assertObject(factHandle, context, workingMemory);
     }
 
     private void checkDirty() {
@@ -293,20 +292,6 @@ public class ObjectTypeNode extends ObjectSource
                              final InternalWorkingMemory workingMemory) {
         checkDirty();
 
-        if (!StatefulKnowledgeSessionImpl.IS_MULTITHREAD_MODE) {
-            propagateAssert(factHandle, context, workingMemory);
-        }
-
-        if ( context.getReaderContext() == null && this.objectType.isEvent() && this.expirationOffset >= 0 && this.expirationOffset != Long.MAX_VALUE ) {
-            scheduleExpiration(context, workingMemory, factHandle, expirationOffset, new WorkingMemoryReteExpireAction( factHandle, this ));
-        }
-    }
-
-    public boolean isAssertAllowed( InternalFactHandle factHandle ) {
-        return true;
-    }
-
-    public void propagateAssert(InternalFactHandle factHandle, PropagationContext context, InternalWorkingMemory workingMemory) {
         if (compiledNetwork != null) {
             compiledNetwork.assertObject(factHandle,
                                          context,
@@ -316,6 +301,17 @@ public class ObjectTypeNode extends ObjectSource
                                             context,
                                             workingMemory);
         }
+    }
+
+    void initAssert(InternalFactHandle factHandle, PropagationContext context, InternalWorkingMemory workingMemory) {
+        checkDirty();
+        if ( context.getReaderContext() == null && this.objectType.isEvent() && this.expirationOffset >= 0 && this.expirationOffset != Long.MAX_VALUE ) {
+            scheduleExpiration(context, workingMemory, factHandle, expirationOffset, new WorkingMemoryReteExpireAction( factHandle, this ));
+        }
+    }
+
+    public boolean isAssertAllowed( InternalFactHandle factHandle ) {
+        return true;
     }
 
     public static void scheduleExpiration(PropagationContext context, InternalWorkingMemory workingMemory, InternalFactHandle handle, long expirationOffset, WorkingMemoryReteExpireAction expireAction) {

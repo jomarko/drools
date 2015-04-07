@@ -2224,15 +2224,17 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
         return this.marshallingStore;
     }
 
-    private final PropagationList propagationList = new PropagationList();
-
     public static final boolean IS_MULTITHREAD_MODE = true;
+
+    private final PropagationList propagationList = IS_MULTITHREAD_MODE ? new PropagationList() : null;
 
     public void addPropagation(PropagationEntry propagationEntry) {
         propagationList.addEntry(propagationEntry);
     }
 
     public void flushPropagations() {
-        propagationList.flush(this);
+        if (IS_MULTITHREAD_MODE) {
+            propagationList.flush(this);
+        }
     }
 }

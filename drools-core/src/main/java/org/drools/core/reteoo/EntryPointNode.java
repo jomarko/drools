@@ -257,9 +257,10 @@ public class EntryPointNode extends ObjectSource
 
         for (int i = 0, length = cachedNodes.length; i < length; i++) {
             if (cachedNodes[i].isAssertAllowed(handle)) {
-                cachedNodes[i].assertObject(handle,
-                                            context,
-                                            workingMemory);
+                cachedNodes[i].initAssert(handle, context, workingMemory);
+                if (!StatefulKnowledgeSessionImpl.IS_MULTITHREAD_MODE) {
+                    cachedNodes[i].assertObject(handle, context, workingMemory);
+                }
                 if (allowedNodes != null) {
                     allowedNodes.add(cachedNodes[i]);
                 }
