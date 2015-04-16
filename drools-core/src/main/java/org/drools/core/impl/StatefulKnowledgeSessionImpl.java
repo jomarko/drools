@@ -267,6 +267,8 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
 
     private boolean alive = true;
 
+    private PropagationList propagationList;
+
     // ------------------------------------------------------------
     // Constructors
     // ------------------------------------------------------------
@@ -380,6 +382,13 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
 
         timerService = TimerServiceFactory.getTimerService(this.config);
         ((AcceptsTimerJobFactoryManager) timerService).setTimerJobFactoryManager(config.getTimerJobFactoryManager());
+
+        if (!kBase.getConfiguration().isPhreakEnabled()) {
+            config.setThreadSafe(false);
+        }
+        if (config.isThreadSafe()) {
+            propagationList = new PropagationList();
+        }
 
         this.propagationIdCounter = new AtomicLong(propagationContext);
 
@@ -1072,6 +1081,10 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
         this.opCounter.set( 0 );
         this.lastIdleTimestamp.set( -1 );
 
+        if (propagationList != null) {
+            propagationList.reset();
+        }
+
         initTransient();
 
         timerService = TimerServiceFactory.getTimerService(this.config);
@@ -1106,6 +1119,10 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
         this.propagationIdCounter = new AtomicLong( propagationCounter );
         this.opCounter.set( 0 );
         this.lastIdleTimestamp.set( -1 );
+
+        if (propagationList != null) {
+            propagationList.reset();
+        }
 
         // TODO should these be cleared?
         // we probably neeed to do CEP and Flow timers too
@@ -1573,7 +1590,7 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
     public void executeQueuedActions(boolean flushPropagations) {
         try {
             startOperation();
-            if (StatefulKnowledgeSessionImpl.IS_MULTITHREAD_MODE && flushPropagations) {
+            if (flushPropagations) {
                 flushPropagations();
             }
             if ( evaluatingActionQueue.compareAndSet( false,
@@ -2224,16 +2241,12 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
         return this.marshallingStore;
     }
 
-    public static final boolean IS_MULTITHREAD_MODE = true;
-
-    private final PropagationList propagationList = IS_MULTITHREAD_MODE ? new PropagationList() : null;
-
     public void addPropagation(PropagationEntry propagationEntry) {
         propagationList.addEntry(propagationEntry);
     }
 
     public void flushPropagations() {
-        if (IS_MULTITHREAD_MODE) {
+        if (config.isThreadSafe()) {
             propagationList.flush(this);
         }
     }

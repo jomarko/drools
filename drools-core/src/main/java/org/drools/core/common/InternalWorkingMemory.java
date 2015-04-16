@@ -21,6 +21,7 @@ import org.drools.core.WorkingMemory;
 import org.drools.core.definitions.rule.impl.RuleImpl;
 import org.drools.core.event.AgendaEventSupport;
 import org.drools.core.event.RuleRuntimeEventSupport;
+import org.drools.core.phreak.PropagationEntry;
 import org.drools.core.reteoo.EntryPointNode;
 import org.drools.core.reteoo.ObjectTypeConf;
 import org.drools.core.rule.EntryPointId;
@@ -206,5 +207,6 @@ public interface InternalWorkingMemory
 
     void closeLiveQuery(InternalFactHandle factHandle);
 
+    void addPropagation(PropagationEntry propagationEntry);
     void flushPropagations();
 }

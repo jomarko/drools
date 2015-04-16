@@ -18,6 +18,10 @@ public class PropagationList {
         }
     }
 
+    public synchronized void reset() {
+        list.clear();
+    }
+
     @Override
     public String toString() {
         return list.toString();

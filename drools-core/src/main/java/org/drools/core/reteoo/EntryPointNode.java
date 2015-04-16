@@ -252,26 +252,25 @@ public class EntryPointNode extends ObjectSource
             log.trace("Insert {}", handle.toString());
         }
 
+        boolean isThreadSafe = workingMemory.getSessionConfiguration().isThreadSafe();
         ObjectTypeNode[] cachedNodes = objectTypeConf.getObjectTypeNodes();
         List<ObjectTypeNode> allowedNodes = null;
 
         for (int i = 0, length = cachedNodes.length; i < length; i++) {
             if (cachedNodes[i].isAssertAllowed(handle)) {
                 cachedNodes[i].initAssert(handle, context, workingMemory);
-                if (!StatefulKnowledgeSessionImpl.IS_MULTITHREAD_MODE) {
+                if (!isThreadSafe) {
                     cachedNodes[i].assertObject(handle, context, workingMemory);
                 }
                 if (allowedNodes != null) {
                     allowedNodes.add(cachedNodes[i]);
                 }
-            } else {
-                if (StatefulKnowledgeSessionImpl.IS_MULTITHREAD_MODE) {
-                    if (allowedNodes == null) {
-                        allowedNodes = new ArrayList<ObjectTypeNode>();
-                    }
-                    for (int j = 0; j < i; j++) {
-                        allowedNodes.add(cachedNodes[j]);
-                    }
+            } else if (isThreadSafe) {
+                if (allowedNodes == null) {
+                    allowedNodes = new ArrayList<ObjectTypeNode>();
+                }
+                for (int j = 0; j < i; j++) {
+                    allowedNodes.add(cachedNodes[j]);
                 }
             }
         }
@@ -284,11 +283,11 @@ public class EntryPointNode extends ObjectSource
             }
         }
 
-        if (StatefulKnowledgeSessionImpl.IS_MULTITHREAD_MODE && cachedNodes.length > 0) {
+        if (isThreadSafe && cachedNodes.length > 0) {
             if (allowedNodes != null) {
-                ((StatefulKnowledgeSessionImpl) workingMemory).addPropagation(new PropagationEntry.Insert(allowedNodes.toArray(new ObjectTypeNode[allowedNodes.size()]), handle, context));
+                workingMemory.addPropagation(new PropagationEntry.Insert(allowedNodes.toArray(new ObjectTypeNode[allowedNodes.size()]), handle, context));
             } else {
-                ((StatefulKnowledgeSessionImpl) workingMemory).addPropagation(new PropagationEntry.Insert(cachedNodes, handle, context));
+                workingMemory.addPropagation(new PropagationEntry.Insert(cachedNodes, handle, context));
             }
             ((InternalAgenda)workingMemory.getAgenda()).notifyHalt();
         }
@@ -298,15 +297,15 @@ public class EntryPointNode extends ObjectSource
     public void modifyObject(final InternalFactHandle handle,
                              final PropagationContext pctx,
                              final ObjectTypeConf objectTypeConf,
-                             final InternalWorkingMemory wm) {
+                             final InternalWorkingMemory workingMemory) {
         if ( log.isTraceEnabled() ) {
             log.trace( "Update {}", handle.toString()  );
         }
 
-        if (StatefulKnowledgeSessionImpl.IS_MULTITHREAD_MODE) {
-            ((StatefulKnowledgeSessionImpl) wm).addPropagation(new PropagationEntry.Update(this, handle, pctx, objectTypeConf));
+        if (workingMemory.getSessionConfiguration().isThreadSafe()) {
+            workingMemory.addPropagation(new PropagationEntry.Update(this, handle, pctx, objectTypeConf));
         } else {
-            propagateModify(handle, pctx, objectTypeConf, wm);
+            propagateModify(handle, pctx, objectTypeConf, workingMemory);
         }
     }
 
@@ -417,8 +416,8 @@ public class EntryPointNode extends ObjectSource
             log.trace( "Delete {}", handle.toString()  );
         }
 
-        if (StatefulKnowledgeSessionImpl.IS_MULTITHREAD_MODE) {
-            ((StatefulKnowledgeSessionImpl) workingMemory).addPropagation(new PropagationEntry.Delete(this, handle, context, objectTypeConf));
+        if (workingMemory.getSessionConfiguration().isThreadSafe()) {
+            workingMemory.addPropagation(new PropagationEntry.Delete(this, handle, context, objectTypeConf));
         } else {
             propagateRetract(handle, context, objectTypeConf, workingMemory);
         }

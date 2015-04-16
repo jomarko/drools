@@ -5,7 +5,6 @@ import org.drools.core.common.Memory;
 import org.drools.core.common.MemoryFactory;
 import org.drools.core.common.NetworkNode;
 import org.drools.core.common.StreamTupleEntryQueue;
-import org.drools.core.common.SynchronizedLeftTupleSets;
 import org.drools.core.definitions.rule.impl.RuleImpl;
 import org.drools.core.impl.KnowledgeBaseImpl;
 import org.drools.core.reteoo.AccumulateNode;
@@ -185,12 +184,6 @@ public class SegmentUtilities {
             smem.setSegmentPosMaskBit(ruleSegmentPosMask);
             smem.setPos(counter);
 
-            if (smem.getRootNode().getType() != NodeTypeEnums.LeftInputAdapterNode &&
-                ((LeftTupleSource)smem.getRootNode()).getLeftTupleSource().getType() == NodeTypeEnums.LeftInputAdapterNode ) {
-                    // If LiaNode is in it's own segment, then the segment first after that must use SynchronizedLeftTupleSets
-                    smem.setStagedTuples( new SynchronizedLeftTupleSets() );
-            }
-
             nodeTypesInSegment = updateRiaAndTerminalMemory(tupleSource, tupleSource, smem, wm, false, nodeTypesInSegment);
 
             ((KnowledgeBaseImpl)wm.getKnowledgeBase()).registerSegmentPrototype(segmentRoot, smem);
@@ -261,7 +254,6 @@ public class SegmentUtilities {
 
     private static long processLiaNode(LeftInputAdapterNode tupleSource, InternalWorkingMemory wm, SegmentMemory smem, long nodePosMask, long allLinkedTestMask) {
         LiaNodeMemory liaMemory = (LiaNodeMemory) smem.createNodeMemory(tupleSource, wm);
-        smem.setStagedTuples( new SynchronizedLeftTupleSets() ); // LiaNode SegmentMemory must have Synchronized LeftTupleSets
         liaMemory.setSegmentMemory(smem);
         liaMemory.setNodePosMaskBit(nodePosMask);
         allLinkedTestMask = allLinkedTestMask | nodePosMask;
@@ -348,10 +340,6 @@ public class SegmentUtilities {
             // RTNS and RiaNode's have their own segment, if they are the child of a split.
             if (memory.getSegmentMemory() == null) {
                 SegmentMemory childSmem = new SegmentMemory(sink); // rtns or riatns don't need a queue
-                if ( sink.getLeftTupleSource().getType() == NodeTypeEnums.LeftInputAdapterNode ) {
-                    // If LiaNode is in it's own segment, then the segment first after that must use SynchronizedLeftTupleSets
-                    childSmem.setStagedTuples( new SynchronizedLeftTupleSets() );
-                }
 
                 PathMemory pmem;
                 if (NodeTypeEnums.isTerminalNode(sink)) {

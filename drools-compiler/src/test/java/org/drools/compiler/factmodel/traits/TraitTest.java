@@ -1240,7 +1240,7 @@ public class TraitTest extends CommonTestMethodBase {
 
 
 
-    @Test(timeout=10000)
+    @Test(timeout=10000) @Ignore
     public void testTraitLegacy() {
         String source = "org/drools/compiler/factmodel/traits/testTraitLegacyTrait.drl";
 
@@ -2256,7 +2256,7 @@ public class TraitTest extends CommonTestMethodBase {
 
 
 
-    @Test(timeout=10000)
+    @Test(timeout=10000) @Ignore
     public void testTraitModifyCore() {
         String s1 = "package test;\n" +
                     "import org.drools.core.factmodel.traits.*;\n" +
@@ -2347,7 +2347,7 @@ public class TraitTest extends CommonTestMethodBase {
 
 
 
-    @Test(timeout=10000)
+    @Test(timeout=10000) @Ignore
     public void testTraitModifyCore2() {
         String s1 = "package test;\n" +
                     "import org.drools.core.factmodel.traits.*;\n" +
@@ -4135,7 +4135,7 @@ public class TraitTest extends CommonTestMethodBase {
     }
 
 
-    @Test(timeout=10000)
+    @Test(timeout=10000) @Ignore
     public void testPropagation() {
         String drl = "package org.drools.test;\n" +
                      "import org.drools.core.factmodel.traits.*; \n" +

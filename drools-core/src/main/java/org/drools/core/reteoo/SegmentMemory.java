@@ -7,7 +7,6 @@ import org.drools.core.common.Memory;
 import org.drools.core.common.MemoryFactory;
 import org.drools.core.common.NetworkNode;
 import org.drools.core.common.StreamTupleEntryQueue;
-import org.drools.core.common.SynchronizedLeftTupleSets;
 import org.drools.core.definitions.rule.impl.RuleImpl;
 import org.drools.core.phreak.SegmentUtilities;
 import org.drools.core.reteoo.QueryElementNode.QueryElementNodeMemory;
@@ -372,7 +371,6 @@ public class SegmentMemory extends LinkedList<SegmentMemory>
         private int                         pos;
         private List<MemoryPrototype>       memories = new ArrayList<MemoryPrototype>();
         private boolean                     hasQueue;
-        private boolean                     hasSyncStagedLeftTuple;
         private List<NetworkNode>           nodesInSegment;
 
         private Prototype(SegmentMemory smem) {
@@ -386,7 +384,6 @@ public class SegmentMemory extends LinkedList<SegmentMemory>
                 memories.add(MemoryPrototype.get(mem));
             }
             hasQueue = smem.queue != null;
-            hasSyncStagedLeftTuple = smem.getStagedLeftTuples() instanceof SynchronizedLeftTupleSets;
         }
 
         public SegmentMemory newSegmentMemory(InternalWorkingMemory wm) {
@@ -413,9 +410,6 @@ public class SegmentMemory extends LinkedList<SegmentMemory>
                 smem.setStreamQueue( queue );
             }
 
-            if (hasSyncStagedLeftTuple) {
-                smem.setStagedTuples( new SynchronizedLeftTupleSets() );
-            }
             return smem;
         }
 
