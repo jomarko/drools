@@ -14,7 +14,7 @@ public class PropagationList {
 
     public synchronized void flush(InternalWorkingMemory workingMemory) {
         while (!list.isEmpty()) {
-            list.removeFirst().propagate(workingMemory);
+            list.removeFirst().execute(workingMemory);
         }
     }
 

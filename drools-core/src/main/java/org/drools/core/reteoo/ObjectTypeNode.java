@@ -97,7 +97,7 @@ public class ObjectTypeNode extends ObjectSource
 
     private boolean objectMemoryEnabled;
 
-    public static final transient ExpireJob job = new ExpireJob();
+    private static final transient ExpireJob job = new ExpireJob();
 
     private long                            expirationOffset = -1;
 

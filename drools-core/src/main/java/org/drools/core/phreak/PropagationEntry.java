@@ -9,7 +9,7 @@ import org.drools.core.spi.PropagationContext;
 
 public interface PropagationEntry {
 
-    public void propagate(InternalWorkingMemory wm);
+    public void execute(InternalWorkingMemory wm);
 
     public static class Insert implements PropagationEntry {
         private final ObjectTypeNode[] otns;
@@ -22,7 +22,7 @@ public interface PropagationEntry {
             this.context = context;
         }
 
-        public void propagate(InternalWorkingMemory wm) {
+        public void execute(InternalWorkingMemory wm) {
             for (int i = 0, length = otns.length; i < length; i++ ) {
                 otns[i].propagateAssert(handle, context, wm);
             }
@@ -47,7 +47,7 @@ public interface PropagationEntry {
             this.objectTypeConf = objectTypeConf;
         }
 
-        public void propagate(InternalWorkingMemory wm) {
+        public void execute(InternalWorkingMemory wm) {
             epn.propagateModify(handle, context, objectTypeConf, wm);
         }
 
@@ -70,7 +70,7 @@ public interface PropagationEntry {
             this.objectTypeConf = objectTypeConf;
         }
 
-        public void propagate(InternalWorkingMemory wm) {
+        public void execute(InternalWorkingMemory wm) {
             epn.propagateRetract(handle, context, objectTypeConf, wm);
         }
 

@@ -386,9 +386,7 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
         if (!kBase.getConfiguration().isPhreakEnabled()) {
             config.setThreadSafe(false);
         }
-        if (config.isThreadSafe()) {
-            propagationList = new PropagationList();
-        }
+        propagationList = new PropagationList();
 
         this.propagationIdCounter = new AtomicLong(propagationContext);
 
@@ -2246,8 +2244,6 @@ public class StatefulKnowledgeSessionImpl extends AbstractRuntime
     }
 
     public void flushPropagations() {
-        if (config.isThreadSafe()) {
-            propagationList.flush(this);
-        }
+        propagationList.flush(this);
     }
 }

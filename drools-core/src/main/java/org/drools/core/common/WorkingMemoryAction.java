@@ -16,14 +16,16 @@
 
 package org.drools.core.common;
 
+import org.drools.core.marshalling.impl.MarshallerWriteContext;
+import org.drools.core.marshalling.impl.ProtobufMessages;
+import org.drools.core.phreak.PropagationEntry;
+
 import java.io.Externalizable;
 import java.io.IOException;
 
-import org.drools.core.marshalling.impl.MarshallerWriteContext;
-import org.drools.core.marshalling.impl.ProtobufMessages;
-
 public interface WorkingMemoryAction
     extends
+    PropagationEntry,
     Externalizable {
     public static final short WorkingMemoryReteAssertAction  = 1;
     public static final short DeactivateCallback             = 2;
@@ -33,8 +35,6 @@ public interface WorkingMemoryAction
     public static final short SignalProcessInstanceAction    = 6;
     public static final short SignalAction                   = 7;
     public static final short WorkingMemoryBehahviourRetract = 8;
-
-    public void execute(InternalWorkingMemory workingMemory);
 
     public void execute(InternalKnowledgeRuntime kruntime);
 
