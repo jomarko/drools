@@ -17,8 +17,10 @@
 package org.drools.workbench.models.guided.dtable.backend;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.drools.workbench.models.commons.backend.rule.RuleModelDRLPersistenceImpl;
 import org.drools.workbench.models.datamodel.imports.Import;
 import org.drools.workbench.models.datamodel.oracle.DataType;
@@ -29,6 +31,8 @@ import org.drools.workbench.models.datamodel.rule.ActionRetractFact;
 import org.drools.workbench.models.datamodel.rule.ActionSetField;
 import org.drools.workbench.models.datamodel.rule.ActionWorkItemFieldValue;
 import org.drools.workbench.models.datamodel.rule.BaseSingleFieldConstraint;
+import org.drools.workbench.models.datamodel.rule.DSLSentence;
+import org.drools.workbench.models.datamodel.rule.DSLVariableValue;
 import org.drools.workbench.models.datamodel.rule.FactPattern;
 import org.drools.workbench.models.datamodel.rule.FreeFormLine;
 import org.drools.workbench.models.datamodel.rule.IAction;
@@ -5255,6 +5259,34 @@ public class GuidedDTDRLPersistenceTest {
 
         assertEqualsIgnoreWhitespace(expected,
                                      drl);
+    }
+
+    @Test
+    public void testDSLSentenceDate() {
+        GuidedDecisionTable52 dt = new GuidedDecisionTable52();
+        dt.setTableFormat(GuidedDecisionTable52.TableFormat.EXTENDED_ENTRY);
+        dt.setTableName("person born");
+
+        DSLSentence dslCondition = new DSLSentence();
+        dslCondition.setDefinition("[when] Person born before @{date}=$p:Person(dateOfBirth < \"@{date}\")");
+
+        BRLConditionColumn conditionColumn = new BRLConditionColumn();
+        conditionColumn.setHeader("born before");
+        conditionColumn.setDefinition(Arrays.asList(dslCondition));
+
+        conditionColumn.getChildColumns().add(new BRLConditionVariableColumn("@{date}",
+                                                                             DataType.TYPE_DATE));
+
+        dt.getConditions().add(conditionColumn);
+
+        dt.setData(DataUtilities.makeDataLists(new Object[][]{
+                new Object[]{1l, "row1 desc", "01-Jan-2017"}
+        }));
+
+        GuidedDTDRLPersistence p = GuidedDTDRLPersistence.getInstance();
+        String drl = p.marshal(dt);
+
+        Assertions.assertThat(drl).isNotEmpty().contains("$p:Person(dateOfBirth < \"01-Jan-2017\")");
     }
 
     private void assertEqualsIgnoreWhitespace(final String expected,
