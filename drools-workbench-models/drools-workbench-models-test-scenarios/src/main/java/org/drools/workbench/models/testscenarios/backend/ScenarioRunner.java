@@ -36,6 +36,7 @@ import org.drools.workbench.models.testscenarios.shared.FactData;
 import org.drools.workbench.models.testscenarios.shared.Fixture;
 import org.drools.workbench.models.testscenarios.shared.RetractFact;
 import org.drools.workbench.models.testscenarios.shared.Scenario;
+import org.junit.runner.notification.RunNotifier;
 import org.kie.api.KieBase;
 import org.kie.api.runtime.KieSession;
 import org.kie.soup.project.datamodel.commons.types.ClassTypeResolver;
@@ -55,24 +56,23 @@ public class ScenarioRunner {
     /**
      * This constructor is normally used by Guvnor for running tests on a users
      * request.
-     *
      * @param ksession A populated type resolved to be used to resolve the types in
-     *                 the scenario.
-     *                 <p/>
-     *                 For info on how to invoke this, see
-     *                 ContentPackageAssemblerTest.testPackageWithRuleflow in
-     *                 guvnor-webapp This requires that the classloader for the
-     *                 thread context be set appropriately. The PackageBuilder can
-     *                 provide a suitable TypeResolver for a given package header,
-     *                 and the Package config can provide a classloader.
+     * the scenario.
+     * <p/>
+     * For info on how to invoke this, see
+     * ContentPackageAssemblerTest.testPackageWithRuleflow in
+     * guvnor-webapp This requires that the classloader for the
+     * thread context be set appropriately. The PackageBuilder can
+     * provide a suitable TypeResolver for a given package header,
+     * and the Package config can provide a classloader.
      */
     public ScenarioRunner(final KieSession ksession) throws ClassNotFoundException {
         this(ksession, 0);
     }
 
     /**
-     * @param ksession                   A populated type resolved to be used to resolve the types in
-     *                                   the scenario.
+     * @param ksession A populated type resolved to be used to resolve the types in
+     * the scenario.
      * @param maximumAmountOfRuleFirings Limit for amount of rules that can fire. To prevent infinite loops.
      * @throws ClassNotFoundException
      */
@@ -80,6 +80,15 @@ public class ScenarioRunner {
                           final int maximumAmountOfRuleFirings) throws ClassNotFoundException {
         this.ksession = ksession;
         this.maximumAmountOfRuleFirings = maximumAmountOfRuleFirings;
+    }
+
+    static Set<String> getImports(final Scenario scenario) {
+        final Set<String> imports = new HashSet<String>();
+        imports.addAll(scenario.getImports().getImportStrings());
+        if (scenario.getPackageName() != null && !scenario.getPackageName().isEmpty()) {
+            imports.add(scenario.getPackageName() + ".*");
+        }
+        return imports;
     }
 
     public void run(final Scenario scenario)
@@ -95,29 +104,42 @@ public class ScenarioRunner {
 
         // This looks safe!
         final KieBase kieBase = ksession.getKieBase();
-        final ClassLoader classloader2 = ((InternalKnowledgeBase) kieBase).getRootClassLoader();
 
-        final ClassTypeResolver resolver = new ClassTypeResolver(getImports(scenario),
-                                                                 classloader2);
+        if (scenario.getModelName() != null) {
+            runScorecardTest(scenario, kieBase);
+            return;
+        } else {
 
-        this.workingMemoryWrapper = new TestScenarioKSessionWrapper(ksession,
-                                                                    resolver,
-                                                                    populatedData,
-                                                                    globalData,
-                                                                    scenarioUsesTimeWalk(scenario));
-        this.factPopulatorFactory = new FactPopulatorFactory(populatedData,
-                                                             globalData,
-                                                             resolver);
-        this.factPopulator = new FactPopulator(ksession,
-                                               populatedData);
+            final ClassLoader classloader2 = ((InternalKnowledgeBase) kieBase).getRootClassLoader();
 
-        MVEL.COMPILER_OPT_ALLOW_NAKED_METH_CALL = true;
-        scenario.setLastRunResult(new Date());
+            final ClassTypeResolver resolver = new ClassTypeResolver(getImports(scenario),
+                                                                     classloader2);
 
-        populateGlobals(scenario.getGlobals());
+            this.workingMemoryWrapper = new TestScenarioKSessionWrapper(ksession,
+                                                                        resolver,
+                                                                        populatedData,
+                                                                        globalData,
+                                                                        scenarioUsesTimeWalk(scenario));
+            this.factPopulatorFactory = new FactPopulatorFactory(populatedData,
+                                                                 globalData,
+                                                                 resolver);
+            this.factPopulator = new FactPopulator(ksession,
+                                                   populatedData);
 
-        applyFixtures(scenario.getFixtures(),
-                      createScenarioSettings(scenario));
+            MVEL.COMPILER_OPT_ALLOW_NAKED_METH_CALL = true;
+            scenario.setLastRunResult(new Date());
+
+            populateGlobals(scenario.getGlobals());
+
+            applyFixtures(scenario.getFixtures(),
+                          createScenarioSettings(scenario));
+        }
+    }
+
+    protected void runScorecardTest(final Scenario scenario,
+                                    final KieBase kieBase) {
+        new ScenarioPMMLRunner4JUnit(scenario,
+                                     kieBase).run(new RunNotifier());
     }
 
     private boolean scenarioUsesTimeWalk(Scenario scenario) {
@@ -129,15 +151,6 @@ public class ScenarioRunner {
             }
         }
         return false;
-    }
-
-    static Set<String> getImports(final Scenario scenario) {
-        final Set<String> imports = new HashSet<String>();
-        imports.addAll(scenario.getImports().getImportStrings());
-        if (scenario.getPackageName() != null && !scenario.getPackageName().isEmpty()) {
-            imports.add(scenario.getPackageName() + ".*");
-        }
-        return imports;
     }
 
     private ScenarioSettings createScenarioSettings(final Scenario scenario) {

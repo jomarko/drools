@@ -16,6 +16,13 @@
 
 package org.drools.workbench.models.testscenarios.backend;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+
 import org.drools.core.common.InternalAgendaGroup;
 import org.drools.core.common.ProjectClassLoader;
 import org.drools.core.impl.KnowledgeBaseImpl;
@@ -34,22 +41,23 @@ import org.drools.workbench.models.testscenarios.shared.VerifyField;
 import org.drools.workbench.models.testscenarios.shared.VerifyRuleFired;
 import org.junit.Before;
 import org.junit.Test;
+import org.kie.api.KieBase;
 import org.kie.api.runtime.KieSession;
 import org.kie.soup.project.datamodel.commons.types.ClassTypeResolver;
 import org.kie.soup.project.datamodel.commons.types.TypeResolver;
 import org.kie.soup.project.datamodel.imports.Import;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-
 import static java.util.Arrays.asList;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ScenarioRunnerTest extends RuleUnit {
 
@@ -827,17 +835,38 @@ public class ScenarioRunnerTest extends RuleUnit {
     }
 
     @Test
+    public void testScoreCards() throws Exception {
+
+        ScenarioRunner run = spy(new ScenarioRunner(mock(KieSession.class)) {
+            @Override
+            protected void runScorecardTest(Scenario scenario, KieBase kieBase) {
+            }
+        });
+
+        Scenario scenario = new Scenario();
+        scenario.setModelName("model name");
+
+        run.run(scenario);
+        verify(run).runScorecardTest(any(), any());
+    }
+
+    @Test
     public void testCollection() throws Exception {
 
         KieSession ksession = getKieSession("test_rules2.drl");
 
-        ScenarioRunner run = new ScenarioRunner(ksession);
+        ScenarioRunner run = spy(new ScenarioRunner(ksession) {
+            @Override
+            protected void runScorecardTest(Scenario scenario, KieBase kieBase) {
+            }
+        });
 
         Scenario scenario = new Scenario();
         scenario.getImports().addImport(new Import("org.drools.workbench.models.testscenarios.backend.Cheese"));
         scenario.getImports().addImport(new Import("org.drools.workbench.models.testscenarios.backend.Cheesery"));
 
         run.run(scenario);
+        verify(run, never()).runScorecardTest(any(), any());
     }
 
     private Expectation[] populateScenarioForFailure(Scenario sc) {
